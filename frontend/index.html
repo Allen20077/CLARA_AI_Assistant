@@ -1,0 +1,2404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clara AI</title>
+
+    <style>
+        /* ============================================================
+   CLARA AI — FULL FRONTEND
+   Anime girl UI + chat + multilingual voice + "Clara" wake word
+   Backend: http://127.0.0.1:8000/chat
+   ============================================================ */
+        
+        * {
+            box-sizing: border-box
+        }
+        
+        :root {
+            --pink: #ff5fc7;
+            --purple: #8b5cf6;
+            --blue: #4f72ff;
+            --bg: #060510;
+            --panel: rgba(19, 14, 42, .76);
+            --border: rgba(185, 120, 255, .38);
+            --text: #fff;
+            --muted: #b9b0d1;
+        }
+        
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            font-family: Inter, Segoe UI, Arial, sans-serif;
+            color: var(--text)
+        }
+        
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            background: radial-gradient(circle at 50% 15%, rgba(139, 92, 246, .22), transparent 28%), radial-gradient(circle at 15% 70%, rgba(255, 55, 190, .13), transparent 25%), radial-gradient(circle at 85% 75%, rgba(75, 100, 255, .13), transparent 25%), linear-gradient(135deg, #03030a, #0b0617 50%, #02030a);
+        }
+        /* animated background */
+        
+        body::before {
+            content: "";
+            position: fixed;
+            inset: -20%;
+            pointer-events: none;
+            background: radial-gradient(circle, rgba(255, 90, 210, .18) 0 2px, transparent 3px) 0 0/180px 180px, radial-gradient(circle, rgba(100, 120, 255, .14) 0 2px, transparent 3px) 80px 100px/230px 230px;
+            animation: stars 18s linear infinite;
+        }
+        
+        @keyframes stars {
+            to {
+                transform: translate3d(40px, 25px, 0)
+            }
+        }
+        
+        .app {
+            position: relative;
+            width: 560px;
+            max-width: 94vw;
+            margin: 28px 0;
+            padding: 30px 32px 24px;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            background: linear-gradient(145deg, rgba(32, 20, 62, .84), rgba(10, 8, 25, .82));
+            backdrop-filter: blur(24px);
+            box-shadow: 0 30px 100px rgba(0, 0, 0, .62), inset 0 1px rgba(255, 255, 255, .08);
+            text-align: center;
+            z-index: 2;
+            overflow: hidden;
+        }
+        
+        .app::before {
+            content: "";
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            left: 50%;
+            top: -180px;
+            transform: translateX(-50%);
+            background: radial-gradient(circle, rgba(255, 75, 210, .22), transparent 70%);
+            pointer-events: none;
+        }
+        
+        header {
+            position: relative;
+            z-index: 5
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 58px;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -2px;
+            background: linear-gradient(90deg, #ff68c9, #a66bff, #6f83ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 35px rgba(255, 85, 215, .2);
+        }
+        
+        .subtitle {
+            margin-top: 8px;
+            color: #cfc5e8;
+            font-size: 16px;
+        }
+        
+        .status {
+            margin: 12px auto 0;
+            min-height: 18px;
+            color: #aaa1c0;
+            font-size: 13px;
+            transition: .25s;
+        }
+        
+        .status.active {
+            color: #ff82d5;
+            text-shadow: 0 0 12px rgba(255, 80, 210, .7)
+        }
+        
+        .status.error {
+            color: #ff8e9e
+        }
+        /* ============================================================
+   CHARACTER STAGE
+   ============================================================ */
+        
+        .character-stage {
+            position: relative;
+            width: 100%;
+            height: 390px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 900px;
+        }
+        
+        .stage-ring {
+            position: absolute;
+            width: 310px;
+            height: 310px;
+            border-radius: 50%;
+            border: 1px solid rgba(193, 111, 255, .22);
+            box-shadow: 0 0 40px rgba(157, 72, 255, .13), inset 0 0 40px rgba(157, 72, 255, .08);
+            animation: ringRotate 14s linear infinite;
+        }
+        
+        .stage-ring::before,
+        .stage-ring::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 100, 214, .17);
+        }
+        
+        .stage-ring::before {
+            inset: 18px
+        }
+        
+        .stage-ring::after {
+            inset: 42px
+        }
+        
+        @keyframes ringRotate {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+        
+        .energy-ring {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 80, 210, .14), transparent 65%);
+            filter: blur(4px);
+            animation: energyPulse 2.8s ease-in-out infinite;
+        }
+        
+        @keyframes energyPulse {
+            0%,
+            100% {
+                transform: scale(.92);
+                opacity: .55
+            }
+            50% {
+                transform: scale(1.08);
+                opacity: 1
+            }
+        }
+        /* ============================================================
+   ANIME GIRL
+   ============================================================ */
+        
+        .character {
+            position: relative;
+            width: 270px;
+            height: 350px;
+            cursor: pointer;
+            z-index: 4;
+            transform-style: preserve-3d;
+            animation: idleFloat 4s ease-in-out infinite;
+            transition: filter .3s, transform .3s;
+        }
+        
+        @keyframes idleFloat {
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+            50% {
+                transform: translateY(-7px)
+            }
+        }
+        
+        .character:hover {
+            filter: drop-shadow(0 0 18px rgba(255, 83, 211, .55));
+            transform: translateY(-9px) scale(1.025);
+        }
+        
+        .character-shadow {
+            position: absolute;
+            width: 155px;
+            height: 25px;
+            left: 50%;
+            bottom: 2px;
+            transform: translateX(-50%);
+            border-radius: 50%;
+            background: rgba(0, 0, 0, .38);
+            filter: blur(12px);
+            animation: shadowPulse 4s ease-in-out infinite;
+        }
+        
+        @keyframes shadowPulse {
+            0%,
+            100% {
+                transform: translateX(-50%) scaleX(1);
+                opacity: .5
+            }
+            50% {
+                transform: translateX(-50%) scaleX(.78);
+                opacity: .28
+            }
+        }
+        
+        .clara-aura {
+            position: absolute;
+            left: 50%;
+            top: 125px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .aura-one {
+            width: 285px;
+            height: 285px;
+            background: radial-gradient(circle, rgba(255, 82, 212, .16), transparent 66%);
+            filter: blur(8px);
+            animation: auraPulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes auraPulse {
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(.92);
+                opacity: .55
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.08);
+                opacity: 1
+            }
+        }
+        /* back hair */
+        
+        .anime-hair-back {
+            position: absolute;
+            width: 205px;
+            height: 275px;
+            left: 33px;
+            top: 30px;
+            border-radius: 100px 100px 60px 60px;
+            background: linear-gradient(110deg, #3a211d, #694633 30%, #916848 52%, #67432f 75%, #2d1b1b);
+            box-shadow: inset -18px 0 28px rgba(40, 15, 15, .32), 12px 18px 30px rgba(0, 0, 0, .3);
+            z-index: 2;
+        }
+        
+        .hair-strand {
+            position: absolute;
+            z-index: 1;
+            border-radius: 45px;
+            background: linear-gradient(90deg, #3c231f, #865f43, #4d2f27);
+            transform-origin: top center;
+        }
+        
+        .strand-1 {
+            width: 36px;
+            height: 205px;
+            left: 26px;
+            top: 105px;
+            transform: rotate(8deg)
+        }
+        
+        .strand-2 {
+            width: 31px;
+            height: 190px;
+            left: 42px;
+            top: 135px;
+            transform: rotate(12deg)
+        }
+        
+        .strand-3 {
+            width: 26px;
+            height: 165px;
+            left: 58px;
+            top: 170px;
+            transform: rotate(15deg)
+        }
+        
+        .strand-4 {
+            width: 36px;
+            height: 205px;
+            right: 26px;
+            top: 105px;
+            transform: rotate(-8deg)
+        }
+        
+        .strand-5 {
+            width: 31px;
+            height: 190px;
+            right: 42px;
+            top: 135px;
+            transform: rotate(-12deg)
+        }
+        
+        .strand-6 {
+            width: 26px;
+            height: 165px;
+            right: 58px;
+            top: 170px;
+            transform: rotate(-15deg)
+        }
+        /* bows */
+        
+        .anime-bow {
+            position: absolute;
+            width: 84px;
+            height: 88px;
+            top: 28px;
+            z-index: 10;
+            transition: .4s ease;
+        }
+        
+        .bow-left {
+            left: 2px
+        }
+        
+        .bow-right {
+            right: 2px
+        }
+        
+        .bow-loop {
+            position: absolute;
+            width: 52px;
+            height: 68px;
+            background: linear-gradient(145deg, #2a1a1e, #080609);
+            border: 1px solid rgba(255, 255, 255, .07);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, .4);
+        }
+        
+        .bow-loop-top {
+            left: 0;
+            top: 4px;
+            border-radius: 12px 5px 38px 10px;
+            transform: rotate(20deg);
+        }
+        
+        .bow-loop-bottom {
+            right: 0;
+            top: 19px;
+            border-radius: 5px 12px 10px 38px;
+            transform: rotate(-20deg);
+        }
+        
+        .bow-knot {
+            position: absolute;
+            width: 27px;
+            height: 27px;
+            left: 29px;
+            top: 32px;
+            border-radius: 50%;
+            background: #171014;
+            border: 2px solid rgba(255, 255, 255, .08);
+        }
+        
+        .character:hover .bow-left {
+            transform: rotate(-4deg) translateX(-4px)
+        }
+        
+        .character:hover .bow-right {
+            transform: rotate(4deg) translateX(4px)
+        }
+        /* face */
+        
+        .anime-face {
+            position: absolute;
+            width: 150px;
+            height: 165px;
+            left: 60px;
+            top: 65px;
+            border-radius: 48% 48% 50% 50%;
+            background: linear-gradient(145deg, #ffe8df, #f5c5b7);
+            box-shadow: inset -8px -10px 18px rgba(190, 100, 80, .08), 0 10px 20px rgba(0, 0, 0, .16);
+            z-index: 7;
+        }
+        
+        .face-highlight {
+            position: absolute;
+            width: 48px;
+            height: 70px;
+            left: 13px;
+            top: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .12);
+            filter: blur(4px);
+        }
+        
+        .anime-ear {
+            position: absolute;
+            width: 19px;
+            height: 34px;
+            top: 68px;
+            border-radius: 50%;
+            background: #f5c5b7;
+            z-index: -1;
+        }
+        
+        .ear-left {
+            left: -12px
+        }
+        
+        .ear-right {
+            right: -12px
+        }
+        /* eyes */
+        
+        .anime-eye {
+            position: absolute;
+            width: 42px;
+            height: 53px;
+            top: 65px;
+            border-radius: 50% 50% 45% 45%;
+            background: radial-gradient(circle at 50% 62%, #2b161d 0 20%, #6e3a43 32%, #b87574 56%, #dba9a0 78%, #f5ddd4 100%);
+            border: 2px solid #593331;
+            overflow: hidden;
+            z-index: 10;
+            transition: transform .12s ease;
+            animation: animeBlink 5.2s infinite;
+        }
+        
+        .eye-left {
+            left: 25px
+        }
+        
+        .eye-right {
+            right: 25px
+        }
+        
+        @keyframes animeBlink {
+            0%,
+            43%,
+            47%,
+            100% {
+                transform: scaleY(1)
+            }
+            45% {
+                transform: scaleY(.05)
+            }
+        }
+        
+        .eye-iris {
+            position: absolute;
+            width: 20px;
+            height: 28px;
+            left: 9px;
+            top: 15px;
+            border-radius: 50%;
+            background: #241318;
+        }
+        
+        .eye-highlight {
+            position: absolute;
+            border-radius: 50%;
+            background: white;
+            z-index: 4;
+        }
+        
+        .big-highlight {
+            width: 12px;
+            height: 14px;
+            left: 7px;
+            top: 5px
+        }
+        
+        .small-highlight {
+            width: 5px;
+            height: 6px;
+            right: 5px;
+            bottom: 8px;
+            opacity: .8
+        }
+        
+        .eyelashes {
+            position: absolute;
+            width: 47px;
+            height: 18px;
+            top: 58px;
+            border-top: 3px solid #4a292b;
+            z-index: 11;
+        }
+        
+        .lashes-left {
+            left: 20px;
+            transform: rotate(-7deg)
+        }
+        
+        .lashes-right {
+            right: 20px;
+            transform: rotate(7deg)
+        }
+        
+        .anime-eyebrow {
+            position: absolute;
+            width: 29px;
+            height: 5px;
+            top: 51px;
+            border-radius: 10px;
+            background: #704638;
+            z-index: 12;
+        }
+        
+        .eyebrow-left {
+            left: 31px;
+            transform: rotate(-8deg)
+        }
+        
+        .eyebrow-right {
+            right: 31px;
+            transform: rotate(8deg)
+        }
+        
+        .anime-nose {
+            position: absolute;
+            width: 5px;
+            height: 8px;
+            left: 73px;
+            top: 111px;
+            border-radius: 50%;
+            background: #d9998a;
+            z-index: 12;
+        }
+        
+        .anime-blush {
+            position: absolute;
+            width: 35px;
+            height: 16px;
+            top: 111px;
+            border-radius: 50%;
+            background: rgba(244, 91, 109, .3);
+            filter: blur(4px);
+            z-index: 11;
+            animation: blushPulse 3s ease-in-out infinite;
+        }
+        
+        .blush-left {
+            left: 5px
+        }
+        
+        .blush-right {
+            right: 5px
+        }
+        
+        @keyframes blushPulse {
+            0%,
+            100% {
+                opacity: .5
+            }
+            50% {
+                opacity: .95
+            }
+        }
+        
+        .anime-mouth {
+            position: absolute;
+            width: 32px;
+            height: 16px;
+            left: 59px;
+            top: 126px;
+            border-bottom: 3px solid #9c4052;
+            border-radius: 0 0 30px 30px;
+            z-index: 13;
+            transition: .12s;
+        }
+        
+        .mouth-inner {
+            position: absolute;
+            width: 18px;
+            height: 4px;
+            left: 7px;
+            bottom: -1px;
+            border-radius: 50%;
+            background: #7b3344;
+            opacity: .4;
+        }
+        /* front hair */
+        
+        .front-hair {
+            position: absolute;
+            width: 166px;
+            height: 115px;
+            left: 52px;
+            top: 42px;
+            z-index: 9;
+            pointer-events: none;
+        }
+        
+        .front-lock {
+            position: absolute;
+            background: linear-gradient(110deg, #4b2c24, #865f43, #56352b);
+        }
+        
+        .lock-1 {
+            width: 48px;
+            height: 105px;
+            left: 0;
+            top: 0;
+            border-radius: 30px 5px 40px 10px;
+            transform: rotate(10deg)
+        }
+        
+        .lock-2 {
+            width: 42px;
+            height: 115px;
+            left: 31px;
+            top: -5px;
+            border-radius: 30px 10px 40px 10px;
+            transform: rotate(5deg)
+        }
+        
+        .lock-3 {
+            width: 39px;
+            height: 122px;
+            left: 65px;
+            top: -10px;
+            border-radius: 30px 10px 35px 10px;
+            transform: rotate(-2deg)
+        }
+        
+        .lock-4 {
+            width: 42px;
+            height: 115px;
+            right: 23px;
+            top: -5px;
+            border-radius: 10px 30px 10px 40px;
+            transform: rotate(-5deg)
+        }
+        
+        .lock-5 {
+            width: 46px;
+            height: 105px;
+            right: 0;
+            top: 0;
+            border-radius: 5px 30px 10px 40px;
+            transform: rotate(-10deg)
+        }
+        
+        .hair-shine {
+            position: absolute;
+            width: 13px;
+            height: 120px;
+            left: 78px;
+            top: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .13);
+            filter: blur(3px);
+            transform: rotate(10deg);
+            z-index: 10;
+        }
+        /* body */
+        
+        .anime-neck {
+            position: absolute;
+            width: 42px;
+            height: 45px;
+            left: 114px;
+            top: 198px;
+            background: #f5c7b9;
+            z-index: 4;
+        }
+        
+        .anime-body {
+            position: absolute;
+            width: 165px;
+            height: 120px;
+            left: 52px;
+            top: 218px;
+            z-index: 5;
+        }
+        
+        .inner-top {
+            position: absolute;
+            width: 76px;
+            height: 96px;
+            left: 44px;
+            top: 0;
+            background: linear-gradient(#171216, #08070a);
+            border-radius: 25px 25px 0 0;
+        }
+        
+        .cardigan {
+            position: absolute;
+            top: 0;
+            width: 88px;
+            height: 120px;
+            background: linear-gradient(145deg, #b3a6a0, #817774);
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, .12);
+        }
+        
+        .cardigan-left {
+            left: 0;
+            clip-path: polygon(0 0, 58% 0, 100% 100%, 0 100%);
+            border-radius: 28px 0 0 12px;
+        }
+        
+        .cardigan-right {
+            right: 0;
+            clip-path: polygon(42% 0, 100% 0, 100% 100%, 0 100%);
+            border-radius: 0 28px 12px 0;
+        }
+        
+        .cardigan-line {
+            position: absolute;
+            width: 4px;
+            height: 100px;
+            top: 8px;
+            border-radius: 5px;
+            background: rgba(70, 60, 60, .2);
+        }
+        
+        .cardigan-left .line-1 {
+            left: 24px
+        }
+        
+        .cardigan-left .line-2 {
+            left: 34px
+        }
+        
+        .cardigan-left .line-3 {
+            left: 44px
+        }
+        
+        .cardigan-right .line-1 {
+            right: 24px
+        }
+        
+        .cardigan-right .line-2 {
+            right: 34px
+        }
+        
+        .cardigan-right .line-3 {
+            right: 44px
+        }
+        
+        .anime-choker {
+            position: absolute;
+            width: 46px;
+            height: 11px;
+            left: 59px;
+            top: -5px;
+            border-radius: 5px;
+            background: #171015;
+            z-index: 8;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, .3);
+        }
+        
+        .choker-light {
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            left: 19px;
+            top: 2px;
+            border-radius: 50%;
+            background: #c67a91;
+            box-shadow: 0 0 8px rgba(255, 120, 170, .6);
+        }
+        /* particles */
+        
+        .floating-heart {
+            position: absolute;
+            color: rgba(255, 117, 180, .75);
+            font-size: 16px;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .heart-one {
+            left: 10px;
+            top: 155px
+        }
+        
+        .heart-two {
+            right: 10px;
+            top: 190px
+        }
+        
+        .character:hover .heart-one,
+        .character:hover .heart-two {
+            animation: heartFloat 2s ease-out infinite;
+        }
+        
+        .heart-two {
+            animation-delay: .7s!important
+        }
+        
+        @keyframes heartFloat {
+            0% {
+                opacity: 0;
+                transform: translateY(10px) scale(.5)
+            }
+            30% {
+                opacity: 1
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-55px) scale(1.2)
+            }
+        }
+        
+        .particle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #f49ad5;
+            box-shadow: 0 0 10px #ff71c8;
+            opacity: .7;
+            z-index: 20;
+        }
+        
+        .particle-1 {
+            left: 12px;
+            top: 225px;
+            animation: particleFloat 3s infinite
+        }
+        
+        .particle-2 {
+            right: 12px;
+            top: 120px;
+            animation: particleFloat 4s infinite .5s
+        }
+        
+        .particle-3 {
+            left: 24px;
+            top: 85px;
+            animation: particleFloat 3.5s infinite 1s
+        }
+        
+        .particle-4 {
+            right: 25px;
+            top: 235px;
+            animation: particleFloat 4.5s infinite 1.5s
+        }
+        
+        @keyframes particleFloat {
+            0%,
+            100% {
+                transform: translateY(0) scale(.7);
+                opacity: .3
+            }
+            50% {
+                transform: translateY(-20px) scale(1.3);
+                opacity: 1
+            }
+        }
+        /* awake */
+        
+        .character.clara-awake {
+            filter: drop-shadow(0 0 15px rgba(255, 90, 215, .85)) drop-shadow(0 0 35px rgba(125, 75, 255, .65));
+            animation: awakeFloat .8s ease-in-out infinite alternate;
+        }
+        
+        @keyframes awakeFloat {
+            from {
+                transform: translateY(0) scale(1)
+            }
+            to {
+                transform: translateY(-8px) scale(1.035)
+            }
+        }
+        /* speaking */
+        
+        .character.talking {
+            animation: talkingBody .45s ease-in-out infinite alternate;
+        }
+        
+        @keyframes talkingBody {
+            from {
+                transform: translateY(0) scale(1)
+            }
+            to {
+                transform: translateY(-5px) scale(1.025)
+            }
+        }
+        
+        .character.talking .anime-mouth {
+            width: 25px;
+            height: 20px;
+            left: 62px;
+            top: 124px;
+            border: 2px solid #9c4052;
+            border-radius: 50%;
+            background: #8b3548;
+            animation: mouthSpeaking .14s infinite alternate;
+        }
+        
+        @keyframes mouthSpeaking {
+            from {
+                height: 5px;
+                width: 30px
+            }
+            to {
+                height: 21px;
+                width: 24px
+            }
+        }
+        
+        .character.clicked {
+            animation: characterClick .55s ease
+        }
+        
+        @keyframes characterClick {
+            0% {
+                transform: scale(1)
+            }
+            35% {
+                transform: scale(1.08) rotate(-2deg)
+            }
+            70% {
+                transform: scale(1.04) rotate(2deg)
+            }
+            100% {
+                transform: scale(1)
+            }
+        }
+        /* ============================================================
+   CONTROLS
+   ============================================================ */
+        
+        .reply {
+            position: relative;
+            min-height: 72px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 17px 20px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(193, 111, 255, .28);
+            border-radius: 17px;
+            background: rgba(255, 255, 255, .055);
+            line-height: 1.55;
+            font-size: 15px;
+            color: #f4edf9;
+            box-shadow: inset 0 1px rgba(255, 255, 255, .04);
+        }
+        
+        .controls {
+            position: relative;
+            z-index: 5
+        }
+        
+        input,
+        select {
+            width: 100%;
+            padding: 15px 17px;
+            margin-top: 10px;
+            border: 1px solid rgba(191, 126, 255, .24);
+            outline: none;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .065);
+            color: white;
+            font-size: 15px;
+            transition: .25s;
+        }
+        
+        input:focus,
+        select:focus {
+            border-color: rgba(255, 100, 210, .65);
+            box-shadow: 0 0 20px rgba(255, 80, 210, .1);
+        }
+        
+        select option {
+            background: #211632;
+            color: #fff
+        }
+        
+        button {
+            position: relative;
+            width: 100%;
+            padding: 15px;
+            margin-top: 10px;
+            border: 0;
+            border-radius: 14px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform .2s, filter .2s, opacity .2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.08)
+        }
+        
+        button:active {
+            transform: translateY(0) scale(.99)
+        }
+        
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none
+        }
+        
+        #send {
+            background: linear-gradient(135deg, #f04fae, #8a58ef);
+            box-shadow: 0 10px 30px rgba(232, 74, 184, .2);
+        }
+        
+        #voice {
+            background: linear-gradient(135deg, #526df6, #4934c9);
+            box-shadow: 0 10px 30px rgba(72, 90, 245, .2);
+        }
+        
+        .button-glow {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            width: 34px;
+            height: 34px;
+            transform: translateY(-50%);
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, .2);
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, .2);
+        }
+        
+        .button-glow::after {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .4);
+        }
+        
+        button.listening .button-glow {
+            animation: buttonPulse 1s infinite;
+        }
+        
+        @keyframes buttonPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, .35)
+            }
+            70% {
+                box-shadow: 0 0 0 14px rgba(255, 255, 255, 0)
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0)
+            }
+        }
+        
+        .footer-note {
+            margin-top: 15px;
+            color: #8f88a8;
+            font-size: 11px;
+        }
+        
+        .mic-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6c86ff;
+            box-shadow: 0 0 10px #6c86ff;
+            margin-right: 5px;
+        }
+        
+        .mic-dot.live {
+            background: #ff69cf;
+            box-shadow: 0 0 12px #ff69cf;
+            animation: dotPulse .8s infinite;
+        }
+        
+        @keyframes dotPulse {
+            50% {
+                transform: scale(1.35);
+                opacity: .65
+            }
+        }
+        
+        @media(max-width:600px) {
+            .app {
+                padding: 24px 18px 20px
+            }
+            h1 {
+                font-size: 48px
+            }
+            .character-stage {
+                height: 350px
+            }
+            .stage-ring {
+                width: 275px;
+                height: 275px
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+
+        <header>
+            <h1>Clara</h1>
+            <div class="subtitle">Your AI companion</div>
+            <div class="status" id="status">
+                <span class="mic-dot" id="micDot"></span> Ready
+            </div>
+        </header>
+
+        <!-- ========================================================
+         ANIME CHARACTER
+         ======================================================== -->
+
+        <div class="character-stage" id="characterArea">
+
+            <div class="stage-ring"></div>
+            <div class="energy-ring"></div>
+
+            <div class="character" id="character" tabindex="0" title="Click Clara">
+
+                <div class="clara-aura aura-one"></div>
+                <div class="character-shadow"></div>
+
+                <div class="anime-hair-back"></div>
+
+                <div class="hair-strand strand-1"></div>
+                <div class="hair-strand strand-2"></div>
+                <div class="hair-strand strand-3"></div>
+                <div class="hair-strand strand-4"></div>
+                <div class="hair-strand strand-5"></div>
+                <div class="hair-strand strand-6"></div>
+
+                <div class="anime-bow bow-left">
+                    <div class="bow-loop bow-loop-top"></div>
+                    <div class="bow-loop bow-loop-bottom"></div>
+                    <div class="bow-knot"></div>
+                </div>
+
+                <div class="anime-bow bow-right">
+                    <div class="bow-loop bow-loop-top"></div>
+                    <div class="bow-loop bow-loop-bottom"></div>
+                    <div class="bow-knot"></div>
+                </div>
+
+                <div class="anime-neck"></div>
+
+                <div class="anime-body">
+                    <div class="inner-top"></div>
+
+                    <div class="cardigan cardigan-left">
+                        <div class="cardigan-line line-1"></div>
+                        <div class="cardigan-line line-2"></div>
+                        <div class="cardigan-line line-3"></div>
+                    </div>
+
+                    <div class="cardigan cardigan-right">
+                        <div class="cardigan-line line-1"></div>
+                        <div class="cardigan-line line-2"></div>
+                        <div class="cardigan-line line-3"></div>
+                    </div>
+
+                    <div class="anime-choker">
+                        <div class="choker-light"></div>
+                    </div>
+                </div>
+
+                <div class="anime-face">
+
+                    <div class="anime-ear ear-left"></div>
+                    <div class="anime-ear ear-right"></div>
+
+                    <div class="face-highlight"></div>
+
+                    <div class="anime-eye eye-left" id="leftEye">
+                        <div class="eye-iris"></div>
+                        <div class="eye-highlight big-highlight"></div>
+                        <div class="eye-highlight small-highlight"></div>
+                    </div>
+
+                    <div class="anime-eye eye-right" id="rightEye">
+                        <div class="eye-iris"></div>
+                        <div class="eye-highlight big-highlight"></div>
+                        <div class="eye-highlight small-highlight"></div>
+                    </div>
+
+                    <div class="eyelashes lashes-left"></div>
+                    <div class="eyelashes lashes-right"></div>
+
+                    <div class="anime-eyebrow eyebrow-left"></div>
+                    <div class="anime-eyebrow eyebrow-right"></div>
+
+                    <div class="anime-nose"></div>
+
+                    <div class="anime-blush blush-left"></div>
+                    <div class="anime-blush blush-right"></div>
+
+                    <div class="anime-mouth" id="animeMouth">
+                        <div class="mouth-inner"></div>
+                    </div>
+                </div>
+
+                <div class="front-hair">
+                    <div class="front-lock lock-1"></div>
+                    <div class="front-lock lock-2"></div>
+                    <div class="front-lock lock-3"></div>
+                    <div class="front-lock lock-4"></div>
+                    <div class="front-lock lock-5"></div>
+                </div>
+
+                <div class="hair-shine"></div>
+
+                <div class="floating-heart heart-one">♥</div>
+                <div class="floating-heart heart-two">♥</div>
+
+                <div class="particle particle-1"></div>
+                <div class="particle particle-2"></div>
+                <div class="particle particle-3"></div>
+                <div class="particle particle-4"></div>
+
+            </div>
+        </div>
+
+        <!-- ========================================================
+         RESPONSE
+         ======================================================== -->
+
+        <div class="reply" id="reply">
+            Hi! I'm Clara. 😊 How can I help you?
+        </div>
+
+        <div class="controls">
+
+            <!-- LANGUAGE -->
+
+            <select id="language">
+
+            <option value="en-US">English</option>
+            <option value="hi-IN">Hindi</option>
+            <option value="kn-IN">Kannada</option>
+            <option value="ta-IN">Tamil</option>
+            <option value="te-IN">Telugu</option>
+            <option value="ml-IN">Malayalam</option>
+            <option value="mr-IN">Marathi</option>
+            <option value="bn-IN">Bengali</option>
+            <option value="gu-IN">Gujarati</option>
+            <option value="pa-IN">Punjabi</option>
+            <option value="es-ES">Spanish</option>
+            <option value="fr-FR">French</option>
+            <option value="de-DE">German</option>
+            <option value="ja-JP">Japanese</option>
+            <option value="ko-KR">Korean</option>
+            <option value="zh-CN">Chinese</option>
+            <option value="ru-RU">Russian</option>
+
+        </select>
+
+            <!-- MESSAGE -->
+
+            <input id="message" type="text" autocomplete="off" placeholder="Talk to Clara...">
+
+            <!-- TEXT CHAT -->
+
+            <button id="send">
+            💬 Talk to Clara
+            <span class="button-glow"></span>
+        </button>
+
+            <!-- WAKE WORD LISTENER -->
+
+            <button id="voice">
+            🎙️ Speak to Clara
+            <span class="button-glow"></span>
+        </button>
+
+        </div>
+
+        <div class="footer-note">
+            Clara listens for <b>"Clara"</b> after you enable the microphone.
+        </div>
+
+    </div>
+
+    <script>
+        /* ============================================================
+           CLARA FRONTEND
+           ============================================================ */
+
+        const BACKEND = "http://127.0.0.1:8000";
+
+        const message = document.getElementById("message");
+        const send = document.getElementById("send");
+        const voice = document.getElementById("voice");
+        const reply = document.getElementById("reply");
+        const language = document.getElementById("language");
+        const status = document.getElementById("status");
+        const character = document.getElementById("character");
+        const characterArea = document.getElementById("characterArea");
+        const leftEye = document.getElementById("leftEye");
+        const rightEye = document.getElementById("rightEye");
+        const micDot = document.getElementById("micDot");
+
+        /* ============================================================
+           STATE
+           ============================================================ */
+
+        let voices = [];
+        let recognition = null;
+
+        let claraListening = false;
+        let claraAwake = false;
+        let claraSpeaking = false;
+        let processing = false;
+
+        let restartTimer = null;
+
+        /* ============================================================
+           LANGUAGE
+           ============================================================ */
+
+        const languageNames = {
+            "en-US": "English",
+            "hi-IN": "Hindi",
+            "kn-IN": "Kannada",
+            "ta-IN": "Tamil",
+            "te-IN": "Telugu",
+            "ml-IN": "Malayalam",
+            "mr-IN": "Marathi",
+            "bn-IN": "Bengali",
+            "gu-IN": "Gujarati",
+            "pa-IN": "Punjabi",
+            "es-ES": "Spanish",
+            "fr-FR": "French",
+            "de-DE": "German",
+            "ja-JP": "Japanese",
+            "ko-KR": "Korean",
+            "zh-CN": "Chinese",
+            "ru-RU": "Russian"
+        };
+
+        function getSelectedLanguage() {
+            return language.value || "en-US";
+        }
+
+        /* ============================================================
+           STATUS
+           ============================================================ */
+
+        function setStatus(text, type = "normal") {
+            status.innerHTML =
+                `<span class="mic-dot ${claraListening ? "live" : ""}" id="micDot"></span>${text}`;
+
+            status.classList.remove("active", "error");
+
+            if (type === "active") status.classList.add("active");
+            if (type === "error") status.classList.add("error");
+        }
+
+        /* ============================================================
+           BROWSER VOICES
+           ============================================================ */
+
+        function loadVoices() {
+            voices = window.speechSynthesis ?
+                window.speechSynthesis.getVoices() :
+                [];
+        }
+
+        loadVoices();
+
+        if ("speechSynthesis" in window) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        function findBestVoice(lang) {
+
+            const base =
+                lang.split("-")[0].toLowerCase();
+
+            const sameLanguage =
+                voices.filter(v =>
+                    v.lang &&
+                    v.lang.toLowerCase().startsWith(base)
+                );
+
+            if (!sameLanguage.length) {
+                return null;
+            }
+
+            /* Prefer common female-sounding browser voice names. */
+            const preferredNames = [
+                "jenny",
+                "aria",
+                "zira",
+                "samantha",
+                "hazel",
+                "susan",
+                "female",
+                "google"
+            ];
+
+            for (const keyword of preferredNames) {
+
+                const found = sameLanguage.find(v =>
+                    v.name.toLowerCase().includes(keyword)
+                );
+
+                if (found) return found;
+            }
+
+            return sameLanguage[0];
+        }
+
+        /* ============================================================
+           SPEAK CLARA
+           ============================================================ */
+
+        function speakClara(text) {
+
+            if (!text || !("speechSynthesis" in window)) {
+                return;
+            }
+
+            speechSynthesis.cancel();
+
+            const utterance =
+                new SpeechSynthesisUtterance(text);
+
+            const lang =
+                getSelectedLanguage();
+
+            utterance.lang = lang;
+
+            const selectedVoice =
+                findBestVoice(lang);
+
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+
+            /* Slightly warm / feminine browser TTS settings. */
+            utterance.rate = 0.94;
+            utterance.pitch = 1.12;
+            utterance.volume = 1;
+
+            claraSpeaking = true;
+
+            character.classList.add("talking");
+            character.classList.add("clara-awake");
+
+            setStatus("Clara is speaking...", "active");
+
+            utterance.onstart = function() {
+
+                claraSpeaking = true;
+
+                character.classList.add("talking");
+                character.classList.add("clara-awake");
+
+            };
+
+            utterance.onend = function() {
+
+                claraSpeaking = false;
+                character.classList.remove("talking");
+
+                /* Go back to wake-word mode. */
+                claraAwake = false;
+                character.classList.remove("clara-awake");
+
+                setStatus(
+                    "Say \"Clara\"...",
+                    "normal"
+                );
+
+                restartRecognitionSoon();
+
+            };
+
+            utterance.onerror = function() {
+
+                claraSpeaking = false;
+
+                character.classList.remove("talking");
+                character.classList.remove("clara-awake");
+
+                claraAwake = false;
+
+                setStatus(
+                    "Voice playback error",
+                    "error"
+                );
+
+                restartRecognitionSoon();
+
+            };
+
+            speechSynthesis.speak(utterance);
+        }
+
+        /* ============================================================
+           TALK TO BACKEND
+           ============================================================ */
+
+        async function talk() {
+
+            const text =
+                message.value.trim();
+
+            if (!text || processing) {
+                return;
+            }
+
+            processing = true;
+
+            send.disabled = true;
+
+            reply.innerText =
+                "Clara is thinking...";
+
+            setStatus(
+                "Clara is thinking...",
+                "active"
+            );
+
+            try {
+
+                const response =
+                    await fetch(
+                        BACKEND + "/chat", {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                message: text,
+                                language: getSelectedLanguage()
+                            })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok ||
+                    !data.success
+                ) {
+                    throw new Error(
+                        data.reply ||
+                        "Backend error"
+                    );
+                }
+
+                reply.innerText =
+                    data.reply;
+
+                speakClara(
+                    data.reply
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Clara backend error:",
+                    error
+                );
+
+                reply.innerText =
+                    "I can't connect to Clara's brain right now.";
+
+                setStatus(
+                    "Backend connection error",
+                    "error"
+                );
+
+            } finally {
+
+                processing = false;
+                send.disabled = false;
+
+            }
+        }
+
+        /* ============================================================
+           SEND BUTTON
+           ============================================================ */
+
+        send.addEventListener(
+            "click",
+            talk
+        );
+
+        /* ============================================================
+           ENTER KEY
+           ============================================================ */
+
+        message.addEventListener(
+            "keydown",
+            function(event) {
+
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    talk();
+                }
+
+            }
+        );
+
+        /* ============================================================
+           SPEECH RECOGNITION
+           ============================================================ */
+
+        const SpeechRecognition =
+            window.SpeechRecognition ||
+            window.webkitSpeechRecognition;
+
+        if (SpeechRecognition) {
+
+            recognition =
+                new SpeechRecognition();
+
+            recognition.continuous = true;
+
+            recognition.interimResults = false;
+
+            recognition.maxAlternatives = 1;
+
+            recognition.lang =
+                getSelectedLanguage();
+
+            recognition.onstart =
+                function() {
+
+                    claraListening = true;
+
+                    voice.classList.add("listening");
+
+                    setStatus(
+                        claraAwake ?
+                        "I'm listening..." :
+                        "Listening for \"Clara\"...",
+                        "active"
+                    );
+
+                };
+
+            recognition.onresult =
+                function(event) {
+
+                    for (
+                        let i = event.resultIndex; i < event.results.length; i++
+                    ) {
+
+                        const result =
+                            event.results[i];
+
+                        if (!result.isFinal) {
+                            continue;
+                        }
+
+                        const transcript =
+                            result[0].transcript
+                            .trim();
+
+                        if (!transcript) {
+                            continue;
+                        }
+
+                        console.log(
+                            "Clara heard:",
+                            transcript
+                        );
+
+                        handleVoiceTranscript(
+                            transcript
+                        );
+
+                    }
+
+                };
+
+            recognition.onerror =
+                function(event) {
+
+                    console.error(
+                        "Speech recognition error:",
+                        event.error
+                    );
+
+                    if (
+                        event.error ===
+                        "not-allowed"
+                    ) {
+
+                        claraListening = false;
+
+                        voice.classList.remove(
+                            "listening"
+                        );
+
+                        setStatus(
+                            "Microphone permission denied",
+                            "error"
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        event.error ===
+                        "no-speech"
+                    ) {
+                        return;
+                    }
+
+                    setStatus(
+                        "Microphone error: " +
+                        event.error,
+                        "error"
+                    );
+
+                };
+
+            recognition.onend =
+                function() {
+
+                    claraListening = false;
+
+                    voice.classList.remove(
+                        "listening"
+                    );
+
+                    /*
+                     * Keep wake-word listening alive
+                     * unless Clara is currently speaking.
+                     */
+                    if (!claraSpeaking) {
+                        restartRecognitionSoon();
+                    }
+
+                };
+
+        } else {
+
+            setStatus(
+                "Use Google Chrome for voice input.",
+                "error"
+            );
+
+            voice.disabled = true;
+
+        }
+
+        /* ============================================================
+           START RECOGNITION
+           ============================================================ */
+
+        function startClaraListening() {
+
+            if (!recognition) {
+
+                alert(
+                    "Speech recognition is not supported. Please use Google Chrome."
+                );
+
+                return;
+            }
+
+            if (claraListening) {
+                return;
+            }
+
+            recognition.lang =
+                getSelectedLanguage();
+
+            try {
+
+                recognition.start();
+
+            } catch (error) {
+
+                console.log(
+                    "Recognition start:",
+                    error.message
+                );
+
+            }
+        }
+
+        /* ============================================================
+           SAFE RESTART
+           ============================================================ */
+
+        function restartRecognitionSoon() {
+
+            clearTimeout(
+                restartTimer
+            );
+
+            restartTimer =
+                setTimeout(
+                    function() {
+
+                        if (!claraSpeaking &&
+                            !claraListening
+                        ) {
+
+                            startClaraListening();
+
+                        }
+
+                    },
+                    600
+                );
+        }
+
+        /* ============================================================
+           HANDLE VOICE
+           ============================================================ */
+
+        function handleVoiceTranscript(
+            transcript
+        ) {
+
+            const lower =
+                transcript.toLowerCase();
+
+            if (!claraAwake) {
+
+                /*
+                 * Wake Clara when the user says:
+                 * Clara
+                 * Hey Clara
+                 * Hi Clara
+                 */
+                const wakePattern =
+                    /\b(hey\s+clara|hi\s+clara|clara)\b/i;
+
+                if (
+                    wakePattern.test(
+                        transcript
+                    )
+                ) {
+
+                    wakeClara(
+                        transcript
+                    );
+
+                }
+
+                return;
+            }
+
+            /*
+             * Clara is awake.
+             * Ignore an accidental second wake word.
+             */
+            let command =
+                transcript
+                .replace(
+                    /^\s*(hey\s+clara|hi\s+clara|clara)\s*/i,
+                    ""
+                )
+                .trim();
+
+            if (!command) {
+
+                setStatus(
+                    "I'm listening...",
+                    "active"
+                );
+
+                return;
+            }
+
+            /*
+             * Stop recognition while the backend
+             * and voice response are running.
+             */
+            stopRecognition();
+
+            message.value =
+                command;
+
+            sendVoiceCommand(
+                command
+            );
+        }
+
+        /* ============================================================
+           WAKE CLARA
+           ============================================================ */
+
+        function wakeClara(transcript) {
+
+            console.log(
+                "✨ CLARA WOKE UP"
+            );
+
+            claraAwake = true;
+
+            character.classList.add(
+                "clara-awake"
+            );
+
+            setStatus(
+                "I'm listening...",
+                "active"
+            );
+
+            /*
+             * If the user said:
+             * "Clara what is AI?"
+             * use the rest immediately.
+             */
+            const command =
+                transcript
+                .replace(
+                    /^\s*(hey\s+clara|hi\s+clara|clara)\s*/i,
+                    ""
+                )
+                .trim();
+
+            if (command) {
+
+                stopRecognition();
+
+                message.value =
+                    command;
+
+                sendVoiceCommand(
+                    command
+                );
+
+                return;
+            }
+
+            /*
+             * Otherwise answer the wake word.
+             */
+            stopRecognition();
+
+            speakClara(
+                "Yes? I'm listening."
+            );
+        }
+
+        /* ============================================================
+           SEND VOICE COMMAND
+           ============================================================ */
+
+        async function sendVoiceCommand(
+            command
+        ) {
+
+            if (!command) {
+                return;
+            }
+
+            processing = true;
+
+            setStatus(
+                "Clara is thinking...",
+                "active"
+            );
+
+            reply.innerText =
+                "Thinking...";
+
+            try {
+
+                const response =
+                    await fetch(
+                        BACKEND + "/chat", {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                message: command,
+                                language: getSelectedLanguage()
+                            })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok ||
+                    !data.success
+                ) {
+                    throw new Error(
+                        data.reply ||
+                        "Backend error"
+                    );
+                }
+
+                reply.innerText =
+                    data.reply;
+
+                speakClara(
+                    data.reply
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Voice backend error:",
+                    error
+                );
+
+                reply.innerText =
+                    "I can't connect to my brain right now.";
+
+                claraAwake = false;
+
+                character.classList.remove(
+                    "clara-awake"
+                );
+
+                setStatus(
+                    "Backend connection error",
+                    "error"
+                );
+
+                restartRecognitionSoon();
+
+            } finally {
+
+                processing = false;
+
+            }
+        }
+
+        /* ============================================================
+           STOP RECOGNITION
+           ============================================================ */
+
+        function stopRecognition() {
+
+            if (!recognition) {
+                return;
+            }
+
+            try {
+                recognition.stop();
+            } catch (error) {
+                console.log(
+                    "Recognition stop:",
+                    error.message
+                );
+            }
+
+            claraListening = false;
+
+            voice.classList.remove(
+                "listening"
+            );
+
+        }
+
+        /* ============================================================
+           VOICE BUTTON
+           ============================================================ */
+
+        voice.addEventListener(
+            "click",
+            function() {
+
+                if (!recognition) {
+
+                    alert(
+                        "Please use Google Chrome and allow microphone access."
+                    );
+
+                    return;
+                }
+
+                /*
+                 * User explicitly enabled the listener.
+                 */
+                startClaraListening();
+
+                setStatus(
+                    "Listening for \"Clara\"...",
+                    "active"
+                );
+
+            }
+        );
+
+        /* ============================================================
+           LANGUAGE CHANGE
+           ============================================================ */
+
+        language.addEventListener(
+            "change",
+            function() {
+
+                const lang =
+                    getSelectedLanguage();
+
+                if (recognition) {
+
+                    recognition.lang =
+                        lang;
+
+                }
+
+                setStatus(
+                    languageNames[lang] ||
+                    "Language selected"
+                );
+
+                /*
+                 * Reload voices because browser voice
+                 * lists can be populated asynchronously.
+                 */
+                loadVoices();
+
+            }
+        );
+
+        /* ============================================================
+           EYE TRACKING
+           ============================================================ */
+
+        document.addEventListener(
+            "mousemove",
+            function(event) {
+
+                if (!leftEye || !rightEye) {
+                    return;
+                }
+
+                const eyes = [
+                    leftEye,
+                    rightEye
+                ];
+
+                eyes.forEach(
+                    function(eye) {
+
+                        const rect =
+                            eye.getBoundingClientRect();
+
+                        const eyeX =
+                            rect.left +
+                            rect.width / 2;
+
+                        const eyeY =
+                            rect.top +
+                            rect.height / 2;
+
+                        const dx =
+                            event.clientX -
+                            eyeX;
+
+                        const dy =
+                            event.clientY -
+                            eyeY;
+
+                        const angle =
+                            Math.atan2(
+                                dy,
+                                dx
+                            );
+
+                        const distance =
+                            Math.min(
+                                5,
+                                Math.sqrt(
+                                    dx * dx +
+                                    dy * dy
+                                ) / 80
+                            );
+
+                        const x =
+                            Math.cos(angle) *
+                            distance;
+
+                        const y =
+                            Math.sin(angle) *
+                            distance;
+
+                        eye.style.transform =
+                            `translate(${x}px,${y}px)`;
+
+                    }
+                );
+
+            }
+        );
+
+        /* ============================================================
+           PARALLAX
+           ============================================================ */
+
+        characterArea.addEventListener(
+            "mousemove",
+            function(event) {
+
+                if (
+                    claraSpeaking ||
+                    character.classList.contains(
+                        "clara-awake"
+                    )
+                ) {
+                    return;
+                }
+
+                const rect =
+                    characterArea.getBoundingClientRect();
+
+                const x =
+                    (event.clientX -
+                        rect.left -
+                        rect.width / 2) / 45;
+
+                const y =
+                    (event.clientY -
+                        rect.top -
+                        rect.height / 2) / 55;
+
+                character.style.transform =
+                    `translate(${x}px,${y}px)`;
+
+            }
+        );
+
+        characterArea.addEventListener(
+            "mouseleave",
+            function() {
+
+                if (!claraSpeaking &&
+                    !character.classList.contains(
+                        "clara-awake"
+                    )
+                ) {
+
+                    character.style.transform =
+                        "";
+
+                }
+
+            }
+        );
+
+        /* ============================================================
+           CHARACTER CLICK
+           ============================================================ */
+
+        character.addEventListener(
+            "click",
+            function() {
+
+                character.classList.remove(
+                    "clicked"
+                );
+
+                void character.offsetWidth;
+
+                character.classList.add(
+                    "clicked"
+                );
+
+                /*
+                 * If Clara is not busy, give a small
+                 * UI response without calling the backend.
+                 */
+                if (!processing &&
+                    !claraSpeaking
+                ) {
+
+                    const oldReply =
+                        reply.innerText;
+
+                    reply.innerText =
+                        "Hehe! You clicked me. 💕";
+
+                    setTimeout(
+                        function() {
+
+                            if (
+                                reply.innerText ===
+                                "Hehe! You clicked me. 💕"
+                            ) {
+
+                                reply.innerText =
+                                    oldReply;
+
+                            }
+
+                        },
+                        1600
+                    );
+
+                }
+
+            }
+        );
+
+        /* ============================================================
+           KEYBOARD CHARACTER INTERACTION
+           ============================================================ */
+
+        character.addEventListener(
+            "keydown",
+            function(event) {
+
+                if (
+                    event.key === "Enter" ||
+                    event.key === " "
+                ) {
+
+                    event.preventDefault();
+
+                    character.click();
+
+                }
+
+            }
+        );
+
+        /* ============================================================
+           INITIAL MESSAGE
+           ============================================================ */
+
+        window.addEventListener(
+            "load",
+            function() {
+
+                loadVoices();
+
+                setStatus(
+                    "Ready — click Speak to Clara"
+                );
+
+                console.log(
+                    "✨ Clara frontend loaded."
+                );
+
+                console.log(
+                    "🎀 Anime character loaded."
+                );
+
+                console.log(
+                    "🎙 Wake word system loaded."
+                );
+
+                console.log(
+                    "🌍 Multilingual system loaded."
+                );
+
+            }
+        );
+    </script>
+
+</body>
+
+</html>
